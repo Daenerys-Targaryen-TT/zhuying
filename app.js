@@ -528,8 +528,20 @@ function bindEvents() {
   document.getElementById("btn-new-note").addEventListener("click", () => {
     noteModal(null);
   });
-  document.getElementById("btn-import-note").addEventListener("click", () => {
-    document.getElementById("note-file-input").click();
+  document.querySelectorAll(".import-opt").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const type = btn.dataset.import;
+      const input = document.getElementById("note-file-input");
+      const acceptMap = {
+        document: ".txt,.md,.markdown,.text,.docx,.pdf,text/plain,text/markdown,application/pdf",
+        ppt: ".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        image: "image/*",
+      };
+      input.accept = acceptMap[type] || acceptMap.document;
+      const menu = document.getElementById("import-menu");
+      if (menu) menu.removeAttribute("open");
+      input.click();
+    });
   });
   document.getElementById("note-file-input").addEventListener("change", (e) => {
     const file = e.target.files[0];

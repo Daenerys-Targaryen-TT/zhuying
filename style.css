@@ -280,6 +280,21 @@ main {
   letter-spacing: 2px;
 }
 
+.empty::before {
+  content: "藏";
+  display: block;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 18px;
+  background: var(--seal);
+  color: var(--paper);
+  font-size: 26px;
+  line-height: 52px;
+  text-align: center;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(176, 58, 46, 0.28);
+}
+
 /* AI 整合 */
 .ai-card, .settings-card {
   background: var(--paper);
@@ -489,8 +504,7 @@ main {
     color: #222;
     font-family: var(--serif);
   }
-  #print-area * { visibility: visible; }
-  .print-title { font-size: 24px; font-weight: 700; margin: 0 0 6px; }
+  #print-area * { visibility: visible; }  .print-title { font-size: 24px; font-weight: 700; margin: 0 0 6px; }
   .print-meta { font-size: 12px; color: #888; margin: 0 0 18px; }
   .print-note { margin-bottom: 22px; }
   .print-note h2 { font-size: 18px; margin: 0 0 8px; }
@@ -555,5 +569,42 @@ main {
 @media (max-width: 480px) {
   .site-header { padding-top: 18px; }
   .title-block h1 { font-size: 24px; letter-spacing: 3px; }
-  .tab-btn { padding: 8px 12px; font-size: 14px; }
+  .tab-btn { padding: 7px 8px; font-size: 13px; letter-spacing: 1px; }
+  .tabs { gap: 2px; padding: 8px 6px 12px; }
+  .toolbar { gap: 6px; }
+  .toolbar .input.search { min-width: 100px; }
+  .hw-toolbar { gap: 6px; }
 }
+
+/* 导入下拉菜单 */
+.import-menu { position: relative; display: inline-block; }
+.import-menu summary { list-style: none; cursor: pointer; }
+.import-menu summary::-webkit-details-marker { display: none; }
+.import-options {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  min-width: 230px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(60, 40, 20, 0.18);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.import-opt {
+  text-align: left;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  font-family: var(--serif);
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.import-opt:hover { background: rgba(0, 0, 0, 0.05); }

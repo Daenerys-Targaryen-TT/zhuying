@@ -70,8 +70,15 @@
       <div class="toolbar">
         <input type="search" id="note-search" class="input search" placeholder="搜索笔记…">
         <select id="note-category-filter" class="input select"></select>
-        <button class="btn" id="btn-import-note" title="导入 .txt/.md 文件为笔记">导入</button>
-        <input type="file" id="note-file-input" accept=".txt,.md,.markdown,.text,.docx,.pptx,.pdf,.jpg,.jpeg,.png,.webp,.gif,.bmp,text/plain,text/markdown,application/pdf,image/*" class="hidden">
+        <details class="import-menu" id="import-menu">
+          <summary class="btn">导入 ▾</summary>
+          <div class="import-options">
+            <button class="import-opt" data-import="document">📄 导入文档（Word/PDF/文本）</button>
+            <button class="import-opt" data-import="ppt">📊 导入 PPT</button>
+            <button class="import-opt" data-import="image">🖼 导入图片识别文字</button>
+          </div>
+        </details>
+        <input type="file" id="note-file-input" accept=".txt,.md,.markdown,.text,.docx,.pdf,text/plain,text/markdown,application/pdf" class="hidden">
         <button class="btn" id="btn-export-pdf" title="导出全部笔记为 PDF">导出PDF</button>
         <button class="btn btn-primary" id="btn-new-note">＋ 新建</button>
       </div>
