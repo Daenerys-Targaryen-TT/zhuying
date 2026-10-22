@@ -14,6 +14,7 @@ const STORE_KEYS = {
   todos: "zy.todos",
   categories: "zy.categories",
   settings: "zy.settings",
+  handwritings: "zy.handwritings",
 };
 
 const CATEGORY_COLORS = [
@@ -64,6 +65,9 @@ function setTodos(v) { save(STORE_KEYS.todos, v); }
 
 function getCategories() { return load(STORE_KEYS.categories, []); }
 function setCategories(v) { save(STORE_KEYS.categories, v); }
+
+function getHandwritings() { return load(STORE_KEYS.handwritings, []); }
+function setHandwritings(v) { save(STORE_KEYS.handwritings, v); }
 
 function getSettings() {
   return load(STORE_KEYS.settings, {
@@ -813,6 +817,44 @@ let hw = {
   ctx: null,
 };
 
+function renderHWList() {
+  const items = getHandwritings();
+  const el = document.getElementById("hw-list");
+  if (!items.length) {
+    el.innerHTML = '<p class="empty">暂无手写，点「＋ 新建手写」开始</p>';
+    return;
+  }
+  el.innerHTML = items.map((item) => `
+    <div class="hw-card" data-hw-id="${item.id}">
+      <img src="${item.dataUrl}" alt="手写">
+      <span class="hw-date">${fmtDate(item.createdAt)}</span>
+      <button class="hw-del" data-hw-del="${item.id}">×</button>
+    </div>`).join("");
+}
+
+function showHWGallery() {
+  document.getElementById("hw-gallery").classList.remove("hidden");
+  document.getElementById("hw-editor").classList.add("hidden");
+  renderHWList();
+}
+
+function showHWEditor() {
+  document.getElementById("hw-gallery").classList.add("hidden");
+  document.getElementById("hw-editor").classList.remove("hidden");
+  setTimeout(resizeHWCanvas, 0);
+}
+
+function saveHW() {
+  if (hw.strokes.length === 0) { alert("画布是空的，请先写点内容"); return; }
+  const dataUrl = hw.canvas.toDataURL("image/png");
+  const items = getHandwritings();
+  items.push({ id: uuid(), dataUrl, createdAt: Date.now() });
+  setHandwritings(items);
+  hw.strokes = [];
+  redrawHW();
+  showHWGallery();
+}
+
 function initHandwriting() {
   hw.canvas = document.getElementById("hw-canvas");
   hw.ctx = hw.canvas.getContext("2d");
@@ -856,6 +898,26 @@ function initHandwriting() {
     redrawHW();
   });
   document.getElementById("hw-recognize").addEventListener("click", recognizeHW);
+  document.getElementById("btn-hw-new").addEventListener("click", showHWEditor);
+  document.getElementById("hw-save").addEventListener("click", saveHW);
+  document.getElementById("hw-back").addEventListener("click", showHWGallery);
+  document.getElementById("hw-list").addEventListener("click", (e) => {
+    const del = e.target.closest("[data-hw-del]");
+    if (del) {
+      if (!confirm("删除这张手写？")) return;
+      const id = del.dataset.hwDel;
+      setHandwritings(getHandwritings().filter((x) => x.id !== id));
+      renderHWList();
+      return;
+    }
+    const card = e.target.closest(".hw-card");
+    if (card) {
+      const item = getHandwritings().find((x) => x.id === card.dataset.hwId);
+      if (item) {
+        openModal('<h3>手写</h3><img src="' + item.dataUrl + '" style="max-width:100%;background:#fff;border-radius:8px">');
+      }
+    }
+  });
 }
 
 function hwPos(e) {
@@ -1065,6 +1127,7 @@ function startApp() {
   renderNotes();
   renderTodos();
   renderAI();
+  renderHWList();
   initHandwriting();
   bindEvents();
 }

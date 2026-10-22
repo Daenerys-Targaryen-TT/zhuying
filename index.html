@@ -39,30 +39,43 @@
   <main>
     <!-- 手写 -->
     <section class="panel" id="panel-handwriting">
-      <div class="hw-toolbar">
-        <div class="hw-group">
-          <span class="hw-label">颜色</span>
-          <button class="hw-color active" data-color="#1a1a1a" style="background:#1a1a1a"></button>
-          <button class="hw-color" data-color="#b03a2e" style="background:#b03a2e"></button>
-          <button class="hw-color" data-color="#2e5a8a" style="background:#2e5a8a"></button>
-          <button class="hw-color" data-color="#3a7a4a" style="background:#3a7a4a"></button>
-          <button class="hw-color" data-color="#8a5a2b" style="background:#8a5a2b"></button>
-          <button class="hw-color" data-color="#5a3a8a" style="background:#5a3a8a"></button>
+      <!-- 手写列表 -->
+      <div id="hw-gallery">
+        <div class="hw-toolbar">
+          <button class="btn btn-primary" id="btn-hw-new">＋ 新建手写</button>
         </div>
-        <div class="hw-group">
-          <span class="hw-label">粗细</span>
-          <button class="hw-size active" data-size="2">细</button>
-          <button class="hw-size" data-size="5">中</button>
-          <button class="hw-size" data-size="9">粗</button>
+        <div id="hw-list" class="hw-grid"></div>
+      </div>
+
+      <!-- 手写画布 -->
+      <div id="hw-editor" class="hidden">
+        <div class="hw-toolbar">
+          <div class="hw-group">
+            <span class="hw-label">颜色</span>
+            <button class="hw-color active" data-color="#1a1a1a" style="background:#1a1a1a"></button>
+            <button class="hw-color" data-color="#b03a2e" style="background:#b03a2e"></button>
+            <button class="hw-color" data-color="#2e5a8a" style="background:#2e5a8a"></button>
+            <button class="hw-color" data-color="#3a7a4a" style="background:#3a7a4a"></button>
+            <button class="hw-color" data-color="#8a5a2b" style="background:#8a5a2b"></button>
+            <button class="hw-color" data-color="#5a3a8a" style="background:#5a3a8a"></button>
+          </div>
+          <div class="hw-group">
+            <span class="hw-label">粗细</span>
+            <button class="hw-size active" data-size="2">细</button>
+            <button class="hw-size" data-size="5">中</button>
+            <button class="hw-size" data-size="9">粗</button>
+          </div>
         </div>
+        <div class="hw-toolbar">
+          <button class="btn" id="hw-eraser">橡皮</button>
+          <button class="btn" id="hw-undo">撤销</button>
+          <button class="btn" id="hw-clear">清除</button>
+          <button class="btn" id="hw-back">返回</button>
+          <button class="btn" id="hw-save">保存</button>
+          <button class="btn btn-primary" id="hw-recognize">✦ 识别</button>
+        </div>
+        <canvas id="hw-canvas"></canvas>
       </div>
-      <div class="hw-toolbar">
-        <button class="btn" id="hw-eraser">橡皮</button>
-        <button class="btn" id="hw-undo">撤销</button>
-        <button class="btn" id="hw-clear">清除</button>
-        <button class="btn btn-primary" id="hw-recognize">✦ 识别</button>
-      </div>
-      <canvas id="hw-canvas"></canvas>
     </section>
 
     <!-- 笔记 -->
