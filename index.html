@@ -43,6 +43,7 @@
         <select id="note-category-filter" class="input select"></select>
         <button class="btn" id="btn-import-note" title="导入 .txt/.md 文件为笔记">导入</button>
         <input type="file" id="note-file-input" accept=".txt,.md,.markdown,.text,text/plain,text/markdown" class="hidden">
+        <button class="btn" id="btn-export-pdf" title="导出全部笔记为 PDF">导出PDF</button>
         <button class="btn btn-primary" id="btn-new-note">＋ 新建</button>
       </div>
       <div id="note-list" class="list"></div>
@@ -143,6 +144,9 @@
   <div id="modal-overlay" class="modal-overlay hidden">
     <div class="modal" id="modal-box"></div>
   </div>
+
+  <!-- 打印区域（PDF 导出用） -->
+  <div id="print-area"></div>
 
   <script src="app.js"></script>
 </body>

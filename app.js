@@ -305,6 +305,7 @@ function noteModal(note) {
     </label>
     <div class="modal-actions">
       <button class="btn" id="m-cancel">取消</button>
+      <button class="btn ${note ? "" : "hidden"}" id="m-export">导出PDF</button>
       <button class="btn btn-primary" id="m-save">保存</button>
     </div>`);
 }
@@ -389,6 +390,34 @@ function importFileAsNote(file) {
   reader.readAsText(file);
 }
 
+/* ---------- PDF 导出 ---------- */
+function renderPrintArea(html) {
+  document.getElementById("print-area").innerHTML = html;
+  window.print();
+}
+
+function exportNoteHTML(title, content, meta) {
+  return `<h1 class="print-title">${esc(title) || "（无标题）"}</h1>` +
+    (meta ? `<p class="print-meta">${esc(meta)}</p>` : "") +
+    `<div class="print-content">${esc(content)}</div>`;
+}
+
+function exportAllPDF() {
+  const notes = getNotes().sort((a, b) => b.updatedAt - a.updatedAt);
+  const items = notes.map((n, i) => `
+    <div class="print-note">
+      <h2>【${i + 1}】${esc(n.title) || "（无标题）"}</h2>
+      <p class="print-meta">${fmtDate(n.updatedAt)}</p>
+      <div class="print-content">${esc(n.content)}</div>
+    </div>
+    <hr class="print-sep">`).join("");
+  renderPrintArea(
+    `<h1 class="print-title">晓笺藏竹影</h1>
+     <p class="print-meta">共 ${notes.length} 篇笔记</p>
+     ${items || '<p class="print-content">暂无笔记</p>'}`
+  );
+}
+
 /* ---------- 事件绑定 ---------- */
 function bindEvents() {
   // 标签
@@ -411,6 +440,7 @@ function bindEvents() {
     if (file) importFileAsNote(file);
     e.target.value = "";
   });
+  document.getElementById("btn-export-pdf").addEventListener("click", exportAllPDF);
   document.getElementById("note-list").addEventListener("click", (e) => {
     const card = e.target.closest(".card");
     if (!card) return;
@@ -544,6 +574,12 @@ function bindEvents() {
 
   document.getElementById("modal-box").addEventListener("click", (e) => {
     if (e.target.closest("#m-cancel")) return closeModal();
+    if (e.target.closest("#m-export")) {
+      const title = document.getElementById("m-title").value;
+      const content = document.getElementById("m-content").value;
+      renderPrintArea(exportNoteHTML(title, content, ""));
+      return;
+    }
     if (e.target.closest("#m-save")) {
       // 笔记
       if (document.getElementById("m-title")) {

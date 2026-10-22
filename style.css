@@ -474,6 +474,30 @@ main {
 .gate-input::placeholder { color: rgba(250,246,236,0.35); }
 .gate-input:focus { border-color: var(--seal); }
 
+/* 打印（导出 PDF） */
+#print-area { display: none; }
+
+@media print {
+  body * { visibility: hidden; }
+  #print-area {
+    visibility: visible;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: block;
+    color: #222;
+    font-family: var(--serif);
+  }
+  #print-area * { visibility: visible; }
+  .print-title { font-size: 24px; font-weight: 700; margin: 0 0 6px; }
+  .print-meta { font-size: 12px; color: #888; margin: 0 0 18px; }
+  .print-note { margin-bottom: 22px; }
+  .print-note h2 { font-size: 18px; margin: 0 0 8px; }
+  .print-content { font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+  .print-sep { border: none; border-top: 1px dashed #ccc; margin: 20px 0; }
+}
+
 /* 响应式 */
 @media (max-width: 480px) {
   .site-header { padding-top: 18px; }
