@@ -373,6 +373,22 @@ function importData(file) {
   reader.readAsText(file);
 }
 
+function importFileAsNote(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const title = file.name.replace(/\.[^.]+$/, "");
+    const now = Date.now();
+    const notes = getNotes();
+    notes.push({
+      id: uuid(), title, content: String(reader.result || ""),
+      categoryId: "", pinned: false, isAI: false, createdAt: now, updatedAt: now,
+    });
+    setNotes(notes);
+    renderNotes();
+  };
+  reader.readAsText(file);
+}
+
 /* ---------- 事件绑定 ---------- */
 function bindEvents() {
   // 标签
@@ -386,6 +402,14 @@ function bindEvents() {
   document.getElementById("note-category-filter").addEventListener("change", renderNotes);
   document.getElementById("btn-new-note").addEventListener("click", () => {
     noteModal(null);
+  });
+  document.getElementById("btn-import-note").addEventListener("click", () => {
+    document.getElementById("note-file-input").click();
+  });
+  document.getElementById("note-file-input").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) importFileAsNote(file);
+    e.target.value = "";
   });
   document.getElementById("note-list").addEventListener("click", (e) => {
     const card = e.target.closest(".card");
