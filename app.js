@@ -72,6 +72,9 @@ function getSettings() {
     model: "gpt-4o-mini",
     maxTokens: 4000,
     systemPrompt: "你是一个专业的笔记整理助手。请把用户提供的多条笔记整合成一篇结构清晰、重点突出、去重合并的专属笔记本，用 Markdown 格式输出。",
+    cloudOCR: false,
+    baiduApiKey: "",
+    baiduSecretKey: "",
   });
 }
 
@@ -188,6 +191,9 @@ function renderSettings() {
   document.getElementById("set-model").value = s.model;
   document.getElementById("set-maxtokens").value = s.maxTokens;
   document.getElementById("set-prompt").value = s.systemPrompt;
+  document.getElementById("set-cloud-ocr").checked = !!s.cloudOCR;
+  document.getElementById("set-baidu-apikey").value = s.baiduApiKey || "";
+  document.getElementById("set-baidu-secret").value = s.baiduSecretKey || "";
 }
 
 function renderAI() {
@@ -614,6 +620,9 @@ function bindEvents() {
     s.model = document.getElementById("set-model").value.trim();
     s.maxTokens = Number(document.getElementById("set-maxtokens").value) || 4000;
     s.systemPrompt = document.getElementById("set-prompt").value;
+    s.cloudOCR = document.getElementById("set-cloud-ocr").checked;
+    s.baiduApiKey = document.getElementById("set-baidu-apikey").value.trim();
+    s.baiduSecretKey = document.getElementById("set-baidu-secret").value.trim();
     save(STORE_KEYS.settings, s);
     document.getElementById("settings-hint").textContent = "已保存 ✓";
     setTimeout(() => (document.getElementById("settings-hint").textContent = ""), 2000);
@@ -918,20 +927,52 @@ function hwDominantStyle() {
   return { color: domColor, fontSize };
 }
 
+async function baiduCloudOCR(imageDataUrl) {
+  const s = getSettings();
+  const tokenUrl = "https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials" +
+    "&client_id=" + encodeURIComponent(s.baiduApiKey) +
+    "&client_secret=" + encodeURIComponent(s.baiduSecretKey);
+  const tokenRes = await fetch(tokenUrl, { method: "POST" });
+  const tokenData = await tokenRes.json();
+  if (!tokenData.access_token) {
+    throw new Error("百度 OCR 鉴权失败：" + (tokenData.error_description || "请检查 API Key / Secret Key"));
+  }
+  const base64 = imageDataUrl.split(",")[1] || imageDataUrl;
+  const url = "https://aip.baidubce.com/rest/2.0/ocr/v1/handwriting?access_token=" + tokenData.access_token;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: "image=" + encodeURIComponent(base64),
+  });
+  const data = await res.json();
+  if (data.error_code) {
+    throw new Error("百度 OCR 识别失败：" + (data.error_msg || data.error_code));
+  }
+  return (data.words_result || []).map((w) => w.words).join("\n");
+}
+
 async function recognizeHW() {
   if (hw.strokes.length === 0 && !hw.current) { alert("请先写点内容再识别"); return; }
-  if (typeof Tesseract === "undefined") { alert("OCR 库未加载，请检查网络后重试"); return; }
-  alert("正在识别手写文字。首次使用需下载中文语言包（约 20MB），请耐心等待…");
   try {
     const dataUrl = hw.canvas.toDataURL("image/png");
-    const worker = await Tesseract.createWorker("chi_sim+eng");
+    const s = getSettings();
     let text;
-    try {
-      const ret = await worker.recognize(dataUrl);
-      text = ret.data.text || "";
-    } finally {
-      await worker.terminate();
+
+    if (s.cloudOCR && s.baiduApiKey && s.baiduSecretKey) {
+      alert("正在使用云端精准识别…");
+      text = await baiduCloudOCR(dataUrl);
+    } else {
+      if (typeof Tesseract === "undefined") { alert("OCR 库未加载，请检查网络后重试"); return; }
+      alert("正在识别手写文字。首次使用需下载中文语言包（约 20MB），请耐心等待…");
+      const worker = await Tesseract.createWorker("chi_sim+eng");
+      try {
+        const ret = await worker.recognize(dataUrl);
+        text = ret.data.text || "";
+      } finally {
+        await worker.terminate();
+      }
     }
+
     if (!text.trim()) { alert("未识别到文字，请尽量写工整些"); return; }
     showHWResult(text);
   } catch (err) {

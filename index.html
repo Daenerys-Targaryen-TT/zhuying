@@ -151,6 +151,17 @@
         <button class="btn btn-primary btn-block" id="btn-save-settings">保存设置</button>
         <p class="hint" id="settings-hint"></p>
 
+        <h2 class="card-title">精准识别（云端 OCR）</h2>
+        <label class="check-item" style="margin-bottom:10px">
+          <input type="checkbox" id="set-cloud-ocr">
+          <span>启用云端手写识别（更精准）</span>
+        </label>
+        <label class="field-label">百度 OCR API Key</label>
+        <input type="text" id="set-baidu-apikey" class="input" placeholder="百度智能云申请的 API Key" autocomplete="off">
+        <label class="field-label">百度 OCR Secret Key</label>
+        <input type="password" id="set-baidu-secret" class="input" placeholder="Secret Key" autocomplete="off">
+        <p class="hint">启用后手写内容会发送到百度 OCR 识别，介意隐私可关闭。申请：cloud.baidu.com → 文字识别 → 手写文字识别</p>
+
         <h2 class="card-title">分类管理</h2>
         <div id="category-list" class="category-list"></div>
         <div class="category-add">
