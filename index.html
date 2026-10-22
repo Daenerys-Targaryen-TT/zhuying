@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>晓笺藏竹影</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23b03a2e'/><text x='50' y='68' font-size='55' text-anchor='middle' fill='%23f4eee2' font-family='serif'>藏</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 访问口令门 -->
+  <div id="gate" class="gate hidden">
+    <div class="gate-box">
+      <div class="seal-mark" aria-hidden="true">藏</div>
+      <h1 class="gate-title">晓笺藏竹影</h1>
+      <p class="subtitle">拂晓书笺 · 珍藏竹影</p>
+      <input type="password" id="gate-password" class="input gate-input" placeholder="输入访问口令" autocomplete="off">
+      <button class="btn btn-primary btn-block" id="gate-submit">进入</button>
+      <p id="gate-error" class="hint hidden" style="color:var(--seal)">口令错误，请重试</p>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div class="seal-mark" aria-hidden="true">藏</div>
+    <div class="title-block">
+      <h1>晓笺藏竹影</h1>
+      <p class="subtitle">拂晓书笺 · 珍藏竹影</p>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="notes">笔记</button>
+    <button class="tab-btn" data-tab="todos">待办</button>
+    <button class="tab-btn" data-tab="ai">AI 整合</button>
+    <button class="tab-btn" data-tab="settings">设置</button>
+  </nav>
+
+  <main>
+    <!-- 笔记 -->
+    <section class="panel active" id="panel-notes">
+      <div class="toolbar">
+        <input type="search" id="note-search" class="input search" placeholder="搜索笔记…">
+        <select id="note-category-filter" class="input select"></select>
+        <button class="btn btn-primary" id="btn-new-note">＋ 新建</button>
+      </div>
+      <div id="note-list" class="list"></div>
+      <div id="note-empty" class="empty hidden">暂无笔记，点右上角「新建」开始记录</div>
+    </section>
+
+    <!-- 待办 -->
+    <section class="panel" id="panel-todos">
+      <div class="toolbar">
+        <input type="search" id="todo-search" class="input search" placeholder="搜索待办…">
+        <select id="todo-filter" class="input select">
+          <option value="all">全部</option>
+          <option value="active">未完成</option>
+          <option value="completed">已完成</option>
+        </select>
+        <button class="btn btn-primary" id="btn-new-todo">＋ 新建</button>
+      </div>
+      <div id="todo-list" class="list"></div>
+      <div id="todo-empty" class="empty hidden">暂无待办</div>
+    </section>
+
+    <!-- AI 整合 -->
+    <section class="panel" id="panel-ai">
+      <div class="ai-card">
+        <div class="field-group">
+          <label class="field-label">笔记范围</label>
+          <div class="seg" id="ai-mode">
+            <button class="seg-btn active" data-mode="all">全部</button>
+            <button class="seg-btn" data-mode="category">按分类</button>
+            <button class="seg-btn" data-mode="manual">手动选择</button>
+          </div>
+        </div>
+
+        <div class="field-group hidden" id="ai-category-group">
+          <label class="field-label">选择分类</label>
+          <select id="ai-category" class="input select"></select>
+        </div>
+
+        <div class="field-group hidden" id="ai-manual-group">
+          <label class="field-label">勾选笔记（<span id="ai-manual-count">0</span> 篇）</label>
+          <div id="ai-manual-list" class="check-list"></div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">保存到分类</label>
+          <select id="ai-target-category" class="input select"></select>
+        </div>
+
+        <button class="btn btn-primary btn-block" id="btn-generate" disabled>✦ 生成专属笔记本</button>
+        <p class="hint" id="ai-hint"></p>
+
+        <div id="ai-result" class="ai-result hidden">
+          <div class="ai-result-head">
+            <span>整合结果</span>
+            <button class="btn btn-primary" id="btn-save-result">保存为笔记</button>
+          </div>
+          <div id="ai-result-content" class="ai-result-content"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 设置 -->
+    <section class="panel" id="panel-settings">
+      <div class="settings-card">
+        <h2 class="card-title">AI 接口（OpenAI 兼容）</h2>
+        <label class="field-label">API Key</label>
+        <input type="password" id="set-apikey" class="input" placeholder="sk-…" autocomplete="off">
+        <label class="field-label">Base URL</label>
+        <input type="text" id="set-baseurl" class="input" placeholder="https://api.openai.com/v1">
+        <label class="field-label">模型名称</label>
+        <input type="text" id="set-model" class="input" placeholder="gpt-4o-mini">
+        <label class="field-label">最大输出 Token</label>
+        <input type="number" id="set-maxtokens" class="input" min="256" max="16384" step="256">
+        <label class="field-label">系统提示词（可选）</label>
+        <textarea id="set-prompt" class="input textarea" rows="3"></textarea>
+        <button class="btn btn-primary btn-block" id="btn-save-settings">保存设置</button>
+        <p class="hint" id="settings-hint"></p>
+
+        <h2 class="card-title">分类管理</h2>
+        <div id="category-list" class="category-list"></div>
+        <div class="category-add">
+          <input type="text" id="new-category-name" class="input" placeholder="新分类名称">
+          <button class="btn" id="btn-add-category">添加</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 通用弹窗 -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal" id="modal-box"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
