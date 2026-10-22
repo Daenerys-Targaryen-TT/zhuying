@@ -982,11 +982,9 @@ function redrawHW() {
 
 function resizeHWCanvas() {
   if (!hw.canvas) return;
-  const rect = hw.canvas.getBoundingClientRect();
-  if (rect.width === 0 || rect.height === 0) return;
-  hw.scale = window.devicePixelRatio || 1;
-  hw.canvas.width = rect.width * hw.scale;
-  hw.canvas.height = rect.height * hw.scale;
+  hw.scale = 1;
+  hw.canvas.width = 2400;
+  hw.canvas.height = 1600;
   redrawHW();
 }
 
