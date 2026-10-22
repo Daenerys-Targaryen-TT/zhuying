@@ -805,6 +805,8 @@ function bindGate() {
 }
 
 /* ---------- 手写画布 ---------- */
+const HW_W = 4800;
+const HW_H = 3200;
 let hw = {
   color: "#1a1a1a",
   size: 5,
@@ -813,6 +815,7 @@ let hw = {
   current: null,
   drawing: false,
   scale: 1,
+  zoom: 1,
   canvas: null,
   ctx: null,
 };
@@ -866,6 +869,12 @@ function initHandwriting() {
   c.addEventListener("pointerup", hwPointerUp);
   c.addEventListener("pointercancel", hwPointerUp);
   window.addEventListener("resize", resizeHWCanvas);
+  c.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    zoomHW(e.deltaY < 0 ? 1.1 : 0.9);
+  }, { passive: false });
+  document.getElementById("hw-zoom-in").addEventListener("click", () => zoomHW(1.25));
+  document.getElementById("hw-zoom-out").addEventListener("click", () => zoomHW(0.8));
 
   document.querySelectorAll(".hw-color").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -922,7 +931,10 @@ function initHandwriting() {
 
 function hwPos(e) {
   const rect = hw.canvas.getBoundingClientRect();
-  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  return {
+    x: (e.clientX - rect.left) / hw.zoom,
+    y: (e.clientY - rect.top) / hw.zoom,
+  };
 }
 
 function hwPointerDown(e) {
@@ -980,12 +992,27 @@ function redrawHW() {
   if (hw.current) drawHWStroke(hw.current);
 }
 
+function applyHWZoom() {
+  if (!hw.canvas) return;
+  hw.canvas.style.width = (HW_W * hw.zoom) + "px";
+  hw.canvas.style.height = (HW_H * hw.zoom) + "px";
+}
+
 function resizeHWCanvas() {
   if (!hw.canvas) return;
   hw.scale = 1;
-  hw.canvas.width = 2400;
-  hw.canvas.height = 1600;
+  hw.canvas.width = HW_W;
+  hw.canvas.height = HW_H;
+  applyHWZoom();
   redrawHW();
+}
+
+function zoomHW(factor) {
+  const newZoom = Math.min(4, Math.max(0.2, hw.zoom * factor));
+  hw.zoom = newZoom;
+  applyHWZoom();
+  const label = document.getElementById("hw-zoom-label");
+  if (label) label.textContent = Math.round(hw.zoom * 100) + "%";
 }
 
 function hwDominantStyle() {

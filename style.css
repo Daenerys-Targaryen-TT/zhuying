@@ -554,8 +554,6 @@ main {
 
 #hw-canvas {
   display: block;
-  width: 2400px;
-  height: 1600px;
   touch-action: none;
   cursor: crosshair;
 }
@@ -567,6 +565,13 @@ main {
   border-radius: var(--radius);
   background: #fffdf6;
   box-shadow: var(--shadow);
+}
+
+.hw-zoom-label {
+  font-size: 13px;
+  color: var(--ink-soft);
+  min-width: 44px;
+  text-align: center;
 }
 
 /* 响应式 */
