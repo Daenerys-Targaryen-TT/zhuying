@@ -471,6 +471,15 @@ function importFileAsNote(file) {
     return;
   }
 
+  if (ext === "html" || ext === "htm") {
+    file.text().then((htmlText) => {
+      const doc = new DOMParser().parseFromString(htmlText, "text/html");
+      const text = doc.body ? (doc.body.textContent || "") : "";
+      finish(text);
+    }).catch((err) => alert("导入失败：" + err.message));
+    return;
+  }
+
   const imageExts = ["jpg", "jpeg", "png", "webp", "gif", "bmp"];
   if (imageExts.includes(ext)) {
     if (typeof Tesseract === "undefined") { alert("OCR 库未加载，请检查网络后重试"); return; }
@@ -533,7 +542,7 @@ function bindEvents() {
       const type = btn.dataset.import;
       const input = document.getElementById("note-file-input");
       const acceptMap = {
-        document: ".txt,.md,.markdown,.text,.docx,.pdf,text/plain,text/markdown,application/pdf",
+        document: ".txt,.md,.markdown,.text,.docx,.pdf,.html,.htm,text/plain,text/markdown,application/pdf,text/html",
         ppt: ".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation",
         image: "image/*",
       };
