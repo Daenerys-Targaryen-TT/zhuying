@@ -374,6 +374,42 @@ function importData(file) {
   reader.readAsText(file);
 }
 
+function unescapeXML(s) {
+  return s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+}
+
+async function extractPPTXText(arrayBuffer) {
+  const zip = await JSZip.loadAsync(arrayBuffer);
+  const slideFiles = Object.keys(zip.files)
+    .filter((f) => /^ppt\/slides\/slide\d+\.xml$/.test(f))
+    .sort((a, b) => {
+      const na = parseInt(a.match(/slide(\d+)/)[1], 10);
+      const nb = parseInt(b.match(/slide(\d+)/)[1], 10);
+      return na - nb;
+    });
+  let text = "";
+  for (let i = 0; i < slideFiles.length; i++) {
+    const xml = await zip.files[slideFiles[i]].async("string");
+    const matches = xml.match(/<a:t>([\s\S]*?)<\/a:t>/g) || [];
+    const texts = matches.map((m) => unescapeXML(m.replace(/<\/?a:t>/g, "")).trim()).filter(Boolean);
+    if (texts.length) {
+      text += "\n【第 " + (i + 1) + " 页】\n" + texts.join("\n") + "\n";
+    }
+  }
+  return text;
+}
+
+async function extractImageText(file) {
+  const worker = await Tesseract.createWorker("chi_sim+eng");
+  try {
+    const ret = await worker.recognize(file);
+    return ret.data.text || "";
+  } finally {
+    await worker.terminate();
+  }
+}
+
 function importFileAsNote(file) {
   const title = file.name.replace(/\.[^.]+$/, "");
   const ext = (file.name.split(".").pop() || "").toLowerCase();
@@ -411,6 +447,24 @@ function importFileAsNote(file) {
         finish(text);
       })
       .catch((err) => alert("导入失败：" + err.message));
+    return;
+  }
+
+  if (ext === "pptx") {
+    if (typeof JSZip === "undefined") { alert("PPT 解析库未加载，请检查网络后重试"); return; }
+    file.arrayBuffer().then((buf) => extractPPTXText(buf))
+      .then((text) => finish(text))
+      .catch((err) => alert("导入失败：" + err.message));
+    return;
+  }
+
+  const imageExts = ["jpg", "jpeg", "png", "webp", "gif", "bmp"];
+  if (imageExts.includes(ext)) {
+    if (typeof Tesseract === "undefined") { alert("OCR 库未加载，请检查网络后重试"); return; }
+    alert("开始识别图片文字。首次使用需下载中文语言包（约 20MB），请耐心等待…");
+    extractImageText(file)
+      .then((text) => finish(text))
+      .catch((err) => alert("识别失败：" + err.message));
     return;
   }
 
