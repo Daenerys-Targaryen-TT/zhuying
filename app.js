@@ -375,18 +375,47 @@ function importData(file) {
 }
 
 function importFileAsNote(file) {
-  const reader = new FileReader();
-  reader.onload = () => {
-    const title = file.name.replace(/\.[^.]+$/, "");
+  const title = file.name.replace(/\.[^.]+$/, "");
+  const ext = (file.name.split(".").pop() || "").toLowerCase();
+  const finish = (content) => {
+    if (!content.trim()) { alert("未能从该文件提取到文本内容"); return; }
     const now = Date.now();
     const notes = getNotes();
     notes.push({
-      id: uuid(), title, content: String(reader.result || ""),
+      id: uuid(), title, content,
       categoryId: "", pinned: false, isAI: false, createdAt: now, updatedAt: now,
     });
     setNotes(notes);
     renderNotes();
   };
+
+  if (ext === "docx") {
+    if (typeof mammoth === "undefined") { alert("Word 解析库未加载，请检查网络后重试"); return; }
+    file.arrayBuffer().then((buf) => mammoth.extractRawText({ arrayBuffer: buf }))
+      .then((result) => finish(result.value))
+      .catch((err) => alert("导入失败：" + err.message));
+    return;
+  }
+
+  if (ext === "pdf") {
+    if (typeof pdfjsLib === "undefined") { alert("PDF 解析库未加载，请检查网络后重试"); return; }
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+    file.arrayBuffer().then((buf) => pdfjsLib.getDocument({ data: buf }).promise)
+      .then(async (pdf) => {
+        let text = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          text += content.items.map((it) => it.str).join("") + "\n";
+        }
+        finish(text);
+      })
+      .catch((err) => alert("导入失败：" + err.message));
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => finish(String(reader.result || ""));
   reader.readAsText(file);
 }
 
