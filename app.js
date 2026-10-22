@@ -68,8 +68,8 @@ function setCategories(v) { save(STORE_KEYS.categories, v); }
 function getSettings() {
   return load(STORE_KEYS.settings, {
     apiKey: "",
-    baseURL: "https://api.openai.com/v1",
-    model: "gpt-4o-mini",
+    baseURL: "https://api.deepseek.com/v1",
+    model: "deepseek-chat",
     maxTokens: 4000,
     systemPrompt: "你是一个专业的笔记整理助手。请把用户提供的多条笔记整合成一篇结构清晰、重点突出、去重合并的专属笔记本，用 Markdown 格式输出。",
     cloudOCR: false,
