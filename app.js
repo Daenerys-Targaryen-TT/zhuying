@@ -332,6 +332,47 @@ function todoModal(todo) {
     </div>`);
 }
 
+/* ---------- 备份 ---------- */
+function exportData() {
+  const data = {
+    app: "晓笺藏竹影",
+    exportedAt: new Date().toISOString(),
+    notes: getNotes(),
+    todos: getTodos(),
+    categories: getCategories(),
+    settings: getSettings(),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  a.href = url;
+  a.download = `晓笺藏竹影备份_${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importData(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (Array.isArray(data.notes)) setNotes(data.notes);
+      if (Array.isArray(data.todos)) setTodos(data.todos);
+      if (Array.isArray(data.categories)) setCategories(data.categories);
+      if (data.settings && typeof data.settings === "object") save(STORE_KEYS.settings, data.settings);
+      startApp();
+      alert("导入成功，数据已恢复");
+    } catch (err) {
+      alert("导入失败：" + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
 /* ---------- 事件绑定 ---------- */
 function bindEvents() {
   // 标签
@@ -459,6 +500,17 @@ function bindEvents() {
     renderCategories();
     renderCategoryOptions();
     renderNotes();
+  });
+
+  // 备份
+  document.getElementById("btn-export").addEventListener("click", exportData);
+  document.getElementById("btn-import").addEventListener("click", () => {
+    document.getElementById("import-file").click();
+  });
+  document.getElementById("import-file").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) importData(file);
+    e.target.value = "";
   });
 
   // 弹窗
