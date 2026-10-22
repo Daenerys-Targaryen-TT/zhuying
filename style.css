@@ -498,6 +498,59 @@ main {
   .print-sep { border: none; border-top: 1px dashed #ccc; margin: 20px 0; }
 }
 
+/* 手写画布 */
+.hw-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.hw-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hw-label { font-size: 13px; color: var(--ink-soft); margin-right: 2px; }
+
+.hw-color {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.15);
+}
+.hw-color.active { border-color: var(--seal); box-shadow: 0 0 0 2px var(--seal); }
+
+.hw-size {
+  font-family: var(--serif);
+  font-size: 13px;
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink-soft);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.hw-size.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+#hw-canvas {
+  display: block;
+  width: 100%;
+  height: 60vh;
+  min-height: 360px;
+  background: #fffdf6;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  touch-action: none;
+  cursor: crosshair;
+  box-shadow: var(--shadow);
+}
+
 /* 响应式 */
 @media (max-width: 480px) {
   .site-header { padding-top: 18px; }

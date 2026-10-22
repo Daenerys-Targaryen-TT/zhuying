@@ -87,6 +87,9 @@ function switchTab(tab) {
   document.querySelectorAll(".panel").forEach((p) => {
     p.classList.toggle("active", p.id === "panel-" + tab);
   });
+  if (tab === "handwriting") {
+    setTimeout(resizeHWCanvas, 0);
+  }
 }
 
 /* ---------- 渲染 ---------- */
@@ -124,10 +127,14 @@ function renderNotes() {
     const catHtml = cat
       ? `<span><span class="cat-dot" style="background:${cat.color}"></span>${esc(cat.name)}</span>`
       : "";
+    const titleStyle = n.color ? ` style="color:${n.color}"` : "";
+    const previewStyle = n.color || n.fontSize
+      ? ` style="${n.color ? "color:" + n.color + ";" : ""}${n.fontSize ? "font-size:" + n.fontSize + "px;" : ""}"`
+      : "";
     return `
       <div class="card" data-note-id="${n.id}">
-        <p class="note-title">${esc(n.title) || "（无标题）"} ${badges}</p>
-        <p class="note-preview">${esc(n.content)}</p>
+        <p class="note-title"${titleStyle}>${esc(n.title) || "（无标题）"} ${badges}</p>
+        <p class="note-preview"${previewStyle}>${esc(n.content)}</p>
         <div class="note-meta">
           ${catHtml}
           <span>${fmtDate(n.updatedAt)}</span>
@@ -663,6 +670,25 @@ function bindEvents() {
       renderPrintArea(exportNoteHTML(title, content, ""));
       return;
     }
+    if (e.target.closest("#hw-save-text") || e.target.closest("#hw-ai") || e.target.closest("#hw-both")) {
+      const text = document.getElementById("hw-result-text").value.trim();
+      if (!text) { alert("内容为空"); return; }
+      const both = e.target.closest("#hw-both");
+      const ai = e.target.closest("#hw-ai") || both;
+      closeModal();
+      if (ai) {
+        if (!getSettings().apiKey) { alert("请先在设置页配置 AI 接口"); saveHWNote(text, false); return; }
+        aiOptimizeText(text)
+          .then((optimized) => {
+            if (both) saveHWNote(text, false);
+            saveHWNote(optimized, true);
+          })
+          .catch((err) => { alert("AI 优化失败：" + err.message); saveHWNote(text, false); });
+      } else {
+        saveHWNote(text, false);
+      }
+      return;
+    }
     if (e.target.closest("#m-save")) {
       // 笔记
       if (document.getElementById("m-title")) {
@@ -744,6 +770,231 @@ function bindGate() {
   });
 }
 
+/* ---------- 手写画布 ---------- */
+let hw = {
+  color: "#1a1a1a",
+  size: 5,
+  eraser: false,
+  strokes: [],
+  current: null,
+  drawing: false,
+  scale: 1,
+  canvas: null,
+  ctx: null,
+};
+
+function initHandwriting() {
+  hw.canvas = document.getElementById("hw-canvas");
+  hw.ctx = hw.canvas.getContext("2d");
+  resizeHWCanvas();
+
+  const c = hw.canvas;
+  c.addEventListener("pointerdown", hwPointerDown);
+  c.addEventListener("pointermove", hwPointerMove);
+  c.addEventListener("pointerup", hwPointerUp);
+  c.addEventListener("pointercancel", hwPointerUp);
+  window.addEventListener("resize", resizeHWCanvas);
+
+  document.querySelectorAll(".hw-color").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".hw-color").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      hw.color = btn.dataset.color;
+      hw.eraser = false;
+      document.getElementById("hw-eraser").classList.remove("active");
+    });
+  });
+  document.querySelectorAll(".hw-size").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".hw-size").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      hw.size = parseInt(btn.dataset.size, 10);
+      hw.eraser = false;
+      document.getElementById("hw-eraser").classList.remove("active");
+    });
+  });
+  document.getElementById("hw-eraser").addEventListener("click", (e) => {
+    hw.eraser = !hw.eraser;
+    e.currentTarget.classList.toggle("active", hw.eraser);
+  });
+  document.getElementById("hw-undo").addEventListener("click", () => {
+    hw.strokes.pop();
+    redrawHW();
+  });
+  document.getElementById("hw-clear").addEventListener("click", () => {
+    hw.strokes = [];
+    redrawHW();
+  });
+  document.getElementById("hw-recognize").addEventListener("click", recognizeHW);
+}
+
+function hwPos(e) {
+  const rect = hw.canvas.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+function hwPointerDown(e) {
+  e.preventDefault();
+  hw.drawing = true;
+  hw.current = {
+    color: hw.eraser ? "#fffdf6" : hw.color,
+    size: hw.size,
+    eraser: hw.eraser,
+    points: [hwPos(e)],
+  };
+  if (hw.canvas.setPointerCapture) hw.canvas.setPointerCapture(e.pointerId);
+}
+
+function hwPointerMove(e) {
+  if (!hw.drawing || !hw.current) return;
+  e.preventDefault();
+  const p = hwPos(e);
+  hw.current.points.push(p);
+  drawHWStroke(hw.current);
+}
+
+function hwPointerUp() {
+  if (!hw.drawing || !hw.current) return;
+  hw.drawing = false;
+  hw.strokes.push(hw.current);
+  hw.current = null;
+}
+
+function drawHWStroke(stroke) {
+  const ctx = hw.ctx;
+  const pts = stroke.points;
+  const sc = hw.scale;
+  if (pts.length === 1) {
+    ctx.fillStyle = stroke.color;
+    ctx.beginPath();
+    ctx.arc(pts[0].x * sc, pts[0].y * sc, (stroke.size * sc) / 2, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+  ctx.strokeStyle = stroke.color;
+  ctx.lineWidth = stroke.size * sc;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x * sc, pts[0].y * sc);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x * sc, pts[i].y * sc);
+  ctx.stroke();
+}
+
+function redrawHW() {
+  if (!hw.ctx) return;
+  hw.ctx.clearRect(0, 0, hw.canvas.width, hw.canvas.height);
+  for (const s of hw.strokes) drawHWStroke(s);
+  if (hw.current) drawHWStroke(hw.current);
+}
+
+function resizeHWCanvas() {
+  if (!hw.canvas) return;
+  const rect = hw.canvas.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return;
+  hw.scale = window.devicePixelRatio || 1;
+  hw.canvas.width = rect.width * hw.scale;
+  hw.canvas.height = rect.height * hw.scale;
+  redrawHW();
+}
+
+function hwDominantStyle() {
+  const colorCount = {};
+  let totalSize = 0;
+  let sizeCount = 0;
+  for (const s of hw.strokes) {
+    if (s.eraser) continue;
+    colorCount[s.color] = (colorCount[s.color] || 0) + 1;
+    totalSize += s.size;
+    sizeCount++;
+  }
+  let domColor = "#1a1a1a";
+  let maxCount = 0;
+  for (const [color, count] of Object.entries(colorCount)) {
+    if (count > maxCount) { maxCount = count; domColor = color; }
+  }
+  const avg = sizeCount ? totalSize / sizeCount : 5;
+  const fontSize = avg <= 3 ? 14 : (avg <= 7 ? 18 : 24);
+  return { color: domColor, fontSize };
+}
+
+async function recognizeHW() {
+  if (hw.strokes.length === 0 && !hw.current) { alert("请先写点内容再识别"); return; }
+  if (typeof Tesseract === "undefined") { alert("OCR 库未加载，请检查网络后重试"); return; }
+  alert("正在识别手写文字。首次使用需下载中文语言包（约 20MB），请耐心等待…");
+  try {
+    const dataUrl = hw.canvas.toDataURL("image/png");
+    const worker = await Tesseract.createWorker("chi_sim+eng");
+    let text;
+    try {
+      const ret = await worker.recognize(dataUrl);
+      text = ret.data.text || "";
+    } finally {
+      await worker.terminate();
+    }
+    if (!text.trim()) { alert("未识别到文字，请尽量写工整些"); return; }
+    showHWResult(text);
+  } catch (err) {
+    alert("识别失败：" + err.message);
+  }
+}
+
+function showHWResult(text) {
+  window.__hwStyle = hwDominantStyle();
+  const style = window.__hwStyle;
+  openModal(`
+    <h3>识别结果</h3>
+    <textarea id="hw-result-text" class="textarea input" rows="8">${esc(text)}</textarea>
+    <p class="hint">主色 <span class="cat-dot" style="background:${style.color}"></span> 字号 ${style.fontSize}px</p>
+    <div class="modal-actions">
+      <button class="btn" id="hw-save-text">存为文本</button>
+      <button class="btn" id="hw-ai">AI 优化</button>
+      <button class="btn btn-primary" id="hw-both">两者都要</button>
+    </div>`);
+}
+
+function saveHWNote(content, isAI) {
+  const style = window.__hwStyle || { color: "#1a1a1a", fontSize: 18 };
+  const now = Date.now();
+  const notes = getNotes();
+  notes.push({
+    id: uuid(),
+    title: isAI ? "AI 优化笔记" : "手写笔记",
+    content,
+    categoryId: "",
+    pinned: false,
+    isAI,
+    color: style.color,
+    fontSize: style.fontSize,
+    createdAt: now,
+    updatedAt: now,
+  });
+  setNotes(notes);
+  renderNotes();
+}
+
+async function aiOptimizeText(text) {
+  const s = getSettings();
+  if (!s.apiKey || !s.baseURL || !s.model) throw new Error("请先在设置页配置 AI 接口");
+  const endpoint = s.baseURL.replace(/\/+$/, "") + "/chat/completions";
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + s.apiKey },
+    body: JSON.stringify({
+      model: s.model,
+      messages: [
+        { role: "system", content: "你是笔记整理助手。请对手写识别的文字进行润色、纠错、结构化整理，保留原意，输出干净易读的文本。" },
+        { role: "user", content: text },
+      ],
+      max_tokens: Number(s.maxTokens) || 4000,
+      stream: false,
+    }),
+  });
+  if (!res.ok) { const body = await res.text(); throw new Error("请求失败（" + res.status + "）"); }
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
+
 /* ---------- 启动 ---------- */
 function startApp() {
   renderSettings();
@@ -752,6 +1003,7 @@ function startApp() {
   renderNotes();
   renderTodos();
   renderAI();
+  initHandwriting();
   bindEvents();
 }
 
