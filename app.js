@@ -241,6 +241,55 @@ function updateGenerateState() {
   else hint.textContent = `将整合 ${aiSelectedNotes().length} 篇笔记`;
 }
 
+async function callChat(userContent) {
+  const s = getSettings();
+  const endpoint = s.baseURL.replace(/\/+$/, "") + "/chat/completions";
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + s.apiKey,
+    },
+    body: JSON.stringify({
+      model: s.model,
+      messages: [
+        { role: "system", content: s.systemPrompt },
+        { role: "user", content: userContent },
+      ],
+      max_tokens: Number(s.maxTokens) || 4000,
+      stream: false,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error("请求失败（" + res.status + "）" + body.slice(0, 300));
+  }
+  const data = await res.json();
+  const content = data.choices && data.choices[0] && data.choices[0].message.content;
+  if (!content) throw new Error("AI 未返回内容");
+  return content;
+}
+
+function makeChunks(notes, maxLen) {
+  const chunks = [];
+  let current = "";
+  const flush = () => { if (current) { chunks.push(current); current = ""; } };
+  for (const n of notes) {
+    const block = "【笔记】" + n.title + "\n" + n.content + "\n\n";
+    if (block.length > maxLen) {
+      flush();
+      for (let i = 0; i < block.length; i += maxLen) {
+        chunks.push(block.slice(i, i + maxLen));
+      }
+      continue;
+    }
+    if (current.length + block.length > maxLen) flush();
+    current += block;
+  }
+  flush();
+  return chunks;
+}
+
 async function generateAI() {
   const s = getSettings();
   const notes = aiSelectedNotes();
@@ -250,38 +299,31 @@ async function generateAI() {
   btn.disabled = true;
   btn.textContent = "✦ 整合中…";
 
-  const formatted = notes.map((n, i) => `【笔记 ${i + 1}】${n.title}\n${n.content}`).join("\n\n---\n\n");
-  const userContent = `请将以下 ${notes.length} 条笔记整合成一份专属笔记本。要求：去重合并相近内容、提炼要点、按主题分类、保持关键信息完整。\n\n${formatted}`;
-
   try {
-    const endpoint = s.baseURL.replace(/\/+$/, "") + "/chat/completions";
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + s.apiKey,
-      },
-      body: JSON.stringify({
-        model: s.model,
-        messages: [
-          { role: "system", content: s.systemPrompt },
-          { role: "user", content: userContent },
-        ],
-        max_tokens: Number(s.maxTokens) || 4000,
-        stream: false,
-      }),
-    });
+    const totalLen = notes.reduce((sum, n) => sum + n.title.length + n.content.length, 0);
+    let result;
 
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`请求失败（${res.status}）${body.slice(0, 300)}`);
+    if (totalLen > 16000) {
+      const chunks = makeChunks(notes, 14000);
+      if (chunks.length <= 1) {
+        result = await callChat("请将以下内容整合成一份专属笔记本。要求：去重合并相近内容、提炼要点、按主题分类、保持关键信息完整。\n\n" + (chunks[0] || ""));
+      } else {
+        const parts = [];
+        for (let i = 0; i < chunks.length; i++) {
+          btn.textContent = "✦ 整合中 " + (i + 1) + "/" + chunks.length + "…";
+          const part = await callChat("请将以下内容整理成「第 " + (i + 1) + "/" + chunks.length + " 部分」的笔记。要求：去重合并相近内容、提炼要点、按主题归类、保持关键信息完整。\n\n" + chunks[i]);
+          parts.push(part);
+        }
+        const merged = parts.map((p, i) => "【第 " + (i + 1) + " 部分】\n" + p).join("\n\n---\n\n");
+        result = await callChat("请将以下各部分笔记合并成一份结构清晰、无重复、完整的专属笔记本：\n\n" + merged);
+      }
+    } else {
+      const formatted = notes.map((n, i) => "【笔记 " + (i + 1) + "】" + n.title + "\n" + n.content).join("\n\n---\n\n");
+      result = await callChat("请将以下 " + notes.length + " 条笔记整合成一份专属笔记本。要求：去重合并相近内容、提炼要点、按主题分类、保持关键信息完整。\n\n" + formatted);
     }
-    const data = await res.json();
-    const content = data.choices && data.choices[0] && data.choices[0].message.content;
-    if (!content) throw new Error("AI 未返回内容");
 
-    currentAI.result = content;
-    document.getElementById("ai-result-content").textContent = content;
+    currentAI.result = result;
+    document.getElementById("ai-result-content").textContent = result;
     document.getElementById("ai-result").classList.remove("hidden");
   } catch (err) {
     alert("AI 生成失败：" + err.message);
