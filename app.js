@@ -656,6 +656,22 @@ function bindEvents() {
   });
 
   document.getElementById("btn-generate").addEventListener("click", generateAI);
+  document.getElementById("btn-export-md").addEventListener("click", () => {
+    const content = currentAI.result;
+    if (!content) { alert("暂无内容可导出"); return; }
+    const d = new Date();
+    const p = (x) => String(x).padStart(2, "0");
+    const filename = "AI整合笔记_" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + ".md";
+    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
   document.getElementById("btn-save-result").addEventListener("click", () => {
     const targetCat = document.getElementById("ai-target-category").value;
     const now = Date.now();
