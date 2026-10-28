@@ -74,8 +74,8 @@ function getSettings() {
     apiKey: "",
     baseURL: "https://api.deepseek.com/v1",
     model: "deepseek-chat",
-    maxTokens: 4000,
-    systemPrompt: "你是一个专业的笔记整理助手。请把用户提供的多条笔记整合成一篇结构清晰、重点突出、去重合并的专属笔记本，用 Markdown 格式输出。",
+    maxTokens: 8192,
+    systemPrompt: "你是一位资深的学习笔记整理专家。请把用户提供的所有内容整合成一份详尽、完整、可延伸的专属笔记本。\n\n核心原则：\n1. 详尽完整：保留所有知识点、细节、例子、公式、数字、定义，不省略、不简化、不过度概括。\n2. 结构清晰：按主题/章节分门别类，用多级标题、列表、表格组织。\n3. 可延伸：在关键概念后补充必要的解释、例子、易错点、记忆技巧，方便继续学习扩展。\n4. 不缩减：只合并完全重复的内容，其余一律保留，宁可详细也不要精简。\n5. 保留原文关键表述：公式、定理、名词解释、数字务必原样保留，不缩写不改写。\n\n用 Markdown 格式输出，善用标题层级、列表、表格、加粗、引用等结构。",
     cloudOCR: false,
     baiduApiKey: "",
     baiduSecretKey: "",
@@ -306,20 +306,20 @@ async function generateAI() {
     if (totalLen > 16000) {
       const chunks = makeChunks(notes, 14000);
       if (chunks.length <= 1) {
-        result = await callChat("请将以下内容整合成一份专属笔记本。要求：去重合并相近内容、提炼要点、按主题分类、保持关键信息完整。\n\n" + (chunks[0] || ""));
+        result = await callChat("请将以下内容整合成一份详尽、完整、可延伸的专属笔记本。要求：保留所有知识点和细节、不省略不简化、按主题结构化、公式数字定义原样保留。\n\n" + (chunks[0] || ""));
       } else {
         const parts = [];
         for (let i = 0; i < chunks.length; i++) {
           btn.textContent = "✦ 整合中 " + (i + 1) + "/" + chunks.length + "…";
-          const part = await callChat("请将以下内容整理成「第 " + (i + 1) + "/" + chunks.length + " 部分」的笔记。要求：去重合并相近内容、提炼要点、按主题归类、保持关键信息完整。\n\n" + chunks[i]);
+          const part = await callChat("请将以下内容整理成「第 " + (i + 1) + "/" + chunks.length + " 部分」的详细笔记。要求：详尽完整、不省略细节、按主题归类、保留公式数字定义原样。\n\n" + chunks[i]);
           parts.push(part);
         }
         const merged = parts.map((p, i) => "【第 " + (i + 1) + " 部分】\n" + p).join("\n\n---\n\n");
-        result = await callChat("请将以下各部分笔记合并成一份结构清晰、无重复、完整的专属笔记本：\n\n" + merged);
+        result = await callChat("请将以下各部分笔记合并成一份详尽、完整、结构清晰、无遗漏的专属笔记本（不要缩减任何内容，只做去重和整合）：\n\n" + merged);
       }
     } else {
       const formatted = notes.map((n, i) => "【笔记 " + (i + 1) + "】" + n.title + "\n" + n.content).join("\n\n---\n\n");
-      result = await callChat("请将以下 " + notes.length + " 条笔记整合成一份专属笔记本。要求：去重合并相近内容、提炼要点、按主题分类、保持关键信息完整。\n\n" + formatted);
+      result = await callChat("请将以下 " + notes.length + " 条笔记整合成一份详尽、完整、可延伸的专属笔记本。要求：保留所有知识点和细节、不省略不简化、按主题结构化、公式数字定义原样保留。\n\n" + formatted);
     }
 
     currentAI.result = result;
